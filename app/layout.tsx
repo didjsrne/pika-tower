@@ -22,12 +22,6 @@ export default function RootLayout({
   return (
     <html lang="ko" className={gothic.variable}>
       <body>
-        <div className="scenery" aria-hidden>
-          <div className="cloud" />
-          <div className="cloud" />
-          <div className="cloud" />
-          <div className="mountains" />
-        </div>
         {children}
       </body>
     </html>
