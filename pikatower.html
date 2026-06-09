@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Tower Roguelike - Modern UI Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 직선적이고 깔끔한 고딕 폰트 로드 -->
+    <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sky-blue: #71b5e9;
+            --mountain-green: #4cae4f;
+            --grass-green: #78c850;
+            --cloud-white: rgba(255, 255, 255, 0.8);
+            --gb-green: #8bac0f;
+            --gb-dark: #0f380f;
+        }
+
+        body {
+            font-family: 'Gothic A1', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: linear-gradient(to bottom, var(--sky-blue) 0%, var(--sky-blue) 60%, var(--grass-green) 60%, var(--grass-green) 100%);
+            image-rendering: auto;
+        }
+
+        /* 배경 요소 */
+        .scenery {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .cloud {
+            position: absolute;
+            background: white;
+            width: 120px; height: 45px;
+            border-radius: 50px;
+            opacity: 0.6;
+            animation: moveCloud 40s linear infinite;
+        }
+        .cloud:nth-child(1) { top: 10%; left: 10%; transform: scale(1.5); animation-duration: 50s; }
+        .cloud:nth-child(2) { top: 25%; left: 50%; transform: scale(1.2); animation-duration: 35s; }
+        .cloud:nth-child(3) { top: 15%; left: 80%; transform: scale(1.8); animation-duration: 60s; }
+
+        @keyframes moveCloud {
+            from { transform: translateX(-200px); }
+            to { transform: translateX(100vw); }
+        }
+
+        .mountains {
+            position: absolute;
+            bottom: 40%;
+            width: 100%;
+            height: 200px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 100' preserveAspectRatio='none'%3E%3Cpath d='M0,100 L200,20 L400,80 L600,10 L800,70 L1000,30 L1000,100 Z' fill='%2355a630'/%3E%3C/svg%3E");
+            background-size: 100% 100%;
+            opacity: 0.8;
+        }
+
+        /* GameBoy Body */
+        .gb-body {
+            background-color: #a6a6a6;
+            border-radius: 20px 20px 100px 20px;
+            box-shadow: inset -10px -10px 0px rgba(0,0,0,0.1), 20px 20px 50px rgba(0,0,0,0.3);
+            padding: 45px 35px;
+            position: relative;
+            user-select: none;
+            z-index: 10;
+            border: 2px solid #888;
+        }
+
+        .gb-screen-frame {
+            background-color: #333;
+            padding: 25px 35px;
+            border-radius: 8px;
+            margin-bottom: 35px;
+            box-shadow: inset 0 0 10px #000;
+        }
+
+        .gb-screen {
+            background-color: var(--gb-green);
+            border: 3px solid #000;
+            color: var(--gb-dark);
+            overflow: hidden;
+            aspect-ratio: 10 / 9;
+            position: relative;
+            font-weight: 700;
+        }
+
+        /* 컨트롤 버튼 */
+        .gb-controls { display: flex; justify-content: space-between; align-items: center; }
+        .d-pad {
+            width: 70px; height: 70px; background: #222;
+            clip-path: polygon(33% 0%, 66% 0%, 66% 33%, 100% 33%, 100% 66%, 66% 66%, 66% 100%, 33% 100%, 33% 66%, 0% 66%, 0% 33%, 33% 33%);
+        }
+        .ab-buttons { display: flex; gap: 20px; transform: rotate(-20deg); }
+        .btn-circle {
+            width: 48px; height: 48px; background-color: #8b1d44;
+            border-radius: 50%; box-shadow: 3px 3px 0px #5a122c;
+            border: none; cursor: pointer;
+        }
+        .btn-circle:active { box-shadow: 1px 1px 0px #5a122c; transform: translate(2px, 2px); }
+
+        /* 배틀 인터페이스 */
+        .hp-bar-bg { background-color: var(--gb-dark); height: 8px; width: 100px; border-radius: 4px; overflow: hidden; }
+        .hp-bar-fill { background-color: #5d8110; height: 100%; transition: width 0.4s ease-out; }
+
+        .message-box {
+            background-color: #f8f8f8;
+            border: 3px solid var(--gb-dark);
+            color: var(--gb-dark);
+            min-height: 55px;
+            line-height: 1.4;
+            border-radius: 4px;
+        }
+
+        .btn-move {
+            background-color: #222;
+            color: white;
+            padding: 12px 8px;
+            border: 2px solid #555;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+            border-radius: 4px;
+            transition: all 0.1s;
+        }
+        .btn-move:hover { background-color: #333; border-color: #fff; }
+        .btn-move:active { transform: scale(0.96); }
+
+        .status-badge {
+            font-size: 10px; padding: 2px 4px; background: var(--gb-dark); color: var(--gb-green);
+            border-radius: 2px; margin-left: 5px;
+        }
+
+        /* 폰트 강조용 */
+        .title-logo {
+            font-weight: 900;
+            font-size: 24px;
+            color: #ffcb05;
+            text-shadow: 3px 3px 0 #3b4cca, -1px -1px 0 #3b4cca, 1px -1px 0 #3b4cca, -1px 1px 0 #3b4cca;
+            letter-spacing: -1px;
+        }
+
+        .shake { animation: shake 0.2s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+
+        /* 엔딩 자산 스타일 */
+        #victory-assets img {
+            filter: contrast(1.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scenery">
+        <div class="cloud"></div>
+        <div class="cloud"></div>
+        <div class="cloud"></div>
+        <div class="mountains"></div>
+    </div>
+
+    <!-- GameBoy Container -->
+    <div class="gb-body w-full max-w-[440px]">
+        <div class="gb-screen-frame">
+            <div id="screen" class="gb-screen p-3 flex flex-col">
+                
+                <!-- Start Screen -->
+                <div id="view-start" class="h-full flex flex-col items-center justify-center text-center">
+                    <h1 class="title-logo mb-1">포켓몬스터</h1>
+                    <p class="text-[12px] text-black font-extrabold mb-4">우리는 모두 친구</p>
+                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png" class="w-24 h-24 mb-4 drop-shadow-lg" style="filter: contrast(1.1) grayscale(0.2);">
+                    <p class="text-[11px] animate-bounce text-black font-bold">A 버튼을 눌러 시작!</p>
+                </div>
+
+                <!-- Battle View -->
+                <div id="view-game" class="hidden h-full flex flex-col">
+                    <div class="flex justify-between text-[11px] mb-2 border-b border-black/20 pb-1">
+                        <span>층수: <span id="display-floor">1</span>/10</span>
+                        <span>자금: $<span id="display-money">0</span></span>
+                    </div>
+
+                    <div id="battle-area" class="flex-grow flex flex-col justify-between">
+                        <!-- Enemy -->
+                        <div class="flex justify-start items-start">
+                            <div class="w-1/2 bg-black/5 p-1 rounded">
+                                <div class="flex items-center">
+                                    <p id="enemy-name" class="text-[11px] font-black truncate">???</p>
+                                    <span id="enemy-status" class="hidden status-badge">마비</span>
+                                </div>
+                                <div class="hp-bar-bg mt-1"><div id="enemy-hp-bar" class="hp-bar-fill" style="width: 100%"></div></div>
+                                <p class="text-[9px] mt-1">Lv <span id="enemy-lv">5</span></p>
+                                <div id="enemy-types" class="flex gap-1 mt-1"></div>
+                            </div>
+                            <img id="enemy-sprite" src="" class="w-16 h-16 ml-auto object-contain">
+                        </div>
+
+                        <!-- Player -->
+                        <div class="flex justify-end items-end">
+                            <img id="player-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/25.png" class="w-20 h-20 mr-auto object-contain">
+                            <div class="w-1/2 text-right bg-black/5 p-1 rounded">
+                                <p class="text-[11px] font-black">피카츄</p>
+                                <div class="hp-bar-bg ml-auto mt-1"><div id="player-hp-bar" class="hp-bar-fill" style="width: 100%"></div></div>
+                                <p class="text-[9px] mt-1">HP: <span id="player-hp-text">60/60</span></p>
+                                <p class="text-[9px]">Lv <span id="player-lv">5</span></p>
+                            </div>
+                        </div>
+
+                        <!-- Message Box -->
+                        <div id="battle-message" class="message-box p-2 text-[10px] mt-1 font-bold flex items-center justify-center text-center">
+                            모험이 시작됩니다!
+                        </div>
+                    </div>
+
+                    <!-- Shop View -->
+                    <div id="shop-scene" class="hidden h-full flex flex-col py-2">
+                        <p class="text-[14px] font-black border-b-2 border-black mb-3">포켓몬 센터 상점</p>
+                        <div class="flex-grow space-y-2 text-[12px] font-bold">
+                            <div class="flex justify-between items-center bg-white/30 p-2 rounded">
+                                <span>A: 상처약 (회복)</span>
+                                <span>$100</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-white/30 p-2 rounded">
+                                <span>B: 이상한사탕 (강화)</span>
+                                <span>$200</span>
+                            </div>
+                            <p class="mt-4 text-[10px] text-center opacity-80 font-normal">START(화면아래)를 눌러 다음 층으로</p>
+                        </div>
+                        <div class="text-[11px] bg-black/10 p-2 font-black text-right rounded">보유 자금: $<span id="shop-money">0</span></div>
+                    </div>
+                </div>
+
+                <!-- End View -->
+                <div id="view-end" class="hidden h-full flex flex-col items-center justify-center text-center">
+                    <div id="victory-assets" class="hidden flex flex-col items-center mb-2">
+                        <div class="flex justify-center">
+                            <!-- 승리한 피카츄 스프라이트만 표시 -->
+                            <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png" 
+                                 class="w-24 h-24 object-contain drop-shadow-md" alt="Winner Pikachu">
+                        </div>
+                    </div>
+                    <h2 id="end-title" class="text-[20px] font-black mb-1">GAME OVER</h2>
+                    <p id="end-message" class="text-[11px] font-bold leading-tight px-2 mb-3"></p>
+                    <button onclick="location.reload()" class="px-5 py-2 bg-black text-white text-[12px] font-bold rounded shadow-lg active:scale-95">다시 도전</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Physical Buttons -->
+        <div class="gb-controls">
+            <div class="d-pad"></div>
+            <div class="flex flex-col items-center">
+                <div class="flex gap-2">
+                    <div class="w-12 h-2 bg-gray-700 rounded-full"></div>
+                    <div class="w-12 h-2 bg-gray-700 rounded-full"></div>
+                </div>
+                <p class="text-[9px] text-gray-800 mt-2 font-black uppercase tracking-wider">Select & Start</p>
+            </div>
+            <div class="ab-buttons">
+                <div class="flex flex-col items-center">
+                    <button onclick="handlePhysicalButton('B')" class="btn-circle"></button>
+                    <p class="text-[12px] text-gray-800 font-black mt-2">B</p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <button onclick="handlePhysicalButton('A')" class="btn-circle"></button>
+                    <p class="text-[12px] text-gray-800 font-black mt-2">A</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Move Controls -->
+        <div id="move-controls" class="hidden mt-10 grid grid-cols-2 gap-3">
+            <button onclick="useMove(0)" class="btn-move">10만볼트<br><span class="text-[10px] opacity-70">전기</span></button>
+            <button onclick="useMove(1)" class="btn-move">둥실둥실풀<br><span class="text-[10px] opacity-70">비행</span></button>
+            <button onclick="useMove(2)" class="btn-move">참방참방서핑<br><span class="text-[10px] opacity-70">물</span></button>
+            <button onclick="useMove(3)" class="btn-move">볼부비부비<br><span class="text-[10px] opacity-70">마비</span></button>
+        </div>
+        <div id="next-btn-container" class="hidden mt-10">
+            <button onclick="nextFloor()" class="w-full py-4 bg-green-700 text-white font-black rounded-lg border-b-4 border-green-900 shadow-lg active:transform active:translate-y-1 active:border-b-0">다음 층으로 진입 (START)</button>
+        </div>
+    </div>
+
+    <script>
+        const TYPE_CHART = {
+            'electric': { 'water': 2, 'flying': 2, 'ground': 0, 'grass': 0.5, 'electric': 0.5, 'dragon': 0.5 },
+            'water': { 'fire': 2, 'ground': 2, 'rock': 2, 'water': 0.5, 'grass': 0.5, 'dragon': 0.5 },
+            'flying': { 'grass': 2, 'fighting': 2, 'bug': 2, 'electric': 0.5, 'rock': 0.5, 'steel': 0.5 }
+        };
+
+        const MOVE_DATA = [
+            { name: "10만볼트", power: 90, type: "electric" },
+            { name: "둥실둥실풀", power: 90, type: "flying" },
+            { name: "참방참방서핑", power: 90, type: "water" },
+            { name: "볼부비부비", power: 20, type: "electric", effect: "paralyze" }
+        ];
+
+        const ENEMIES_LIST = [
+            { id: 10, name: "Caterpie" }, { id: 16, name: "Pidgey" },
+            { id: 74, name: "Geodude" }, { id: 19, name: "Rattata" },
+            { id: 4, name: "Charmander" }, { id: 7, name: "Squirtle" },
+            { id: 1, name: "Bulbasaur" }, { id: 95, name: "Onix" },
+            { id: 130, name: "Gyarados" }, { id: 150, name: "Mewtwo" }
+        ];
+
+        let state = {
+            floor: 1,
+            money: 0,
+            isBattle: false,
+            isAnimating: false,
+            phase: 'start',
+            player: { lv: 5, maxHp: 60, hp: 60, atk: 15 },
+            enemy: null
+        };
+
+        async function fetchPokemonData(id) {
+            try {
+                const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+                const data = await res.json();
+                return {
+                    types: data.types.map(t => t.type.name),
+                    name: data.name.toUpperCase()
+                };
+            } catch (e) { return { types: ['normal'], name: 'UNKNOWN' }; }
+        }
+
+        function updateUI() {
+            document.getElementById('display-floor').innerText = state.floor;
+            document.getElementById('display-money').innerText = state.money;
+            document.getElementById('shop-money').innerText = state.money;
+            document.getElementById('player-lv').innerText = state.player.lv;
+            document.getElementById('player-hp-text').innerText = `${Math.ceil(state.player.hp)}/${state.player.maxHp}`;
+            document.getElementById('player-hp-bar').style.width = `${(state.player.hp / state.player.maxHp) * 100}%`;
+
+            if (state.enemy) {
+                document.getElementById('enemy-name').innerText = state.enemy.name;
+                document.getElementById('enemy-lv').innerText = state.enemy.lv;
+                document.getElementById('enemy-hp-bar').style.width = `${(state.enemy.hp / state.enemy.maxHp) * 100}%`;
+                document.getElementById('enemy-sprite').src = state.enemy.sprite;
+                document.getElementById('enemy-status').style.display = state.enemy.status === 'paralyzed' ? 'inline' : 'none';
+                
+                const typeContainer = document.getElementById('enemy-types');
+                typeContainer.innerHTML = state.enemy.types.map(t => 
+                    `<span class="text-[9px] bg-black/10 px-2 py-0.5 rounded uppercase font-black">${t}</span>`
+                ).join('');
+            }
+        }
+
+        function handlePhysicalButton(btn) {
+            if (state.phase === 'start') startGame();
+            else if (state.phase === 'shop') {
+                if (btn === 'A') buyItem('heal');
+                if (btn === 'B') buyItem('lvup');
+            }
+        }
+
+        async function startGame() {
+            state.phase = 'battle';
+            document.getElementById('view-start').classList.add('hidden');
+            document.getElementById('view-game').classList.remove('hidden');
+            document.getElementById('move-controls').classList.remove('hidden');
+            await spawnEnemy();
+        }
+
+        async function spawnEnemy() {
+            log("데이터 로딩 중...");
+            const enemyBase = ENEMIES_LIST[state.floor - 1] || ENEMIES_LIST[Math.floor(Math.random() * ENEMIES_LIST.length)];
+            const pokeData = await fetchPokemonData(enemyBase.id);
+            
+            state.enemy = {
+                name: pokeData.name,
+                lv: 4 + state.floor,
+                maxHp: 50 + (state.floor * 15),
+                hp: 50 + (state.floor * 15),
+                atk: 9 + Math.floor(state.floor * 1.5),
+                types: pokeData.types,
+                status: null,
+                sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${enemyBase.id}.png`
+            };
+            
+            state.isBattle = true;
+            document.getElementById('battle-area').classList.remove('hidden');
+            document.getElementById('shop-scene').classList.add('hidden');
+            document.getElementById('move-controls').classList.remove('hidden');
+            document.getElementById('next-btn-container').classList.add('hidden');
+            
+            log(`야생의 ${state.enemy.name}이(가) 나타났다!`);
+            updateUI();
+        }
+
+        function log(msg) {
+            document.getElementById('battle-message').innerText = msg;
+        }
+
+        async function useMove(index) {
+            if (!state.isBattle || state.isAnimating) return;
+            state.isAnimating = true;
+
+            const move = MOVE_DATA[index];
+            log(`피카츄의 ${move.name}!`);
+            await sleep(600);
+
+            document.getElementById('enemy-sprite').classList.add('shake');
+            setTimeout(() => document.getElementById('enemy-sprite').classList.remove('shake'), 200);
+
+            let multiplier = 1;
+            const chart = TYPE_CHART[move.type];
+            if (chart) {
+                state.enemy.types.forEach(t => {
+                    if (chart[t] !== undefined) multiplier *= chart[t];
+                });
+            }
+
+            let damage = Math.floor((((state.player.atk * move.power) / 50) + 2) * multiplier);
+            state.enemy.hp = Math.max(0, state.enemy.hp - damage);
+
+            if (multiplier > 1) log("효과가 굉장했다!");
+            else if (multiplier === 0) log("효과가 없는 듯 하다...");
+            else if (multiplier < 1) log("효과가 별로인 듯...");
+
+            if (move.effect === 'paralyze' && multiplier > 0 && !state.enemy.status) {
+                state.enemy.status = 'paralyzed';
+                log(`${state.enemy.name}은(는) 마비되었다!`);
+            }
+
+            updateUI();
+            await sleep(1000);
+
+            if (state.enemy.hp <= 0) await winBattle();
+            else await enemyTurn();
+            
+            state.isAnimating = false;
+        }
+
+        async function enemyTurn() {
+            if (state.enemy.status === 'paralyzed' && Math.random() < 0.25) {
+                log("마비로 인해\n움직일 수 없다!");
+                await sleep(1000);
+                return;
+            }
+
+            log(`${state.enemy.name}의 공격!`);
+            document.getElementById('player-sprite').classList.add('shake');
+            setTimeout(() => document.getElementById('player-sprite').classList.remove('shake'), 200);
+            
+            await sleep(600);
+            let damage = Math.floor(((state.enemy.atk * 40) / 55) + 2);
+            state.player.hp = Math.max(0, state.player.hp - damage);
+            
+            updateUI();
+            await sleep(1000);
+
+            if (state.player.hp <= 0) endGame(false);
+        }
+
+        async function winBattle() {
+            state.isBattle = false;
+            const reward = 150 + (state.floor * 30);
+            state.money += reward;
+            log(`${state.enemy.name} 쓰러졌다!\n$${reward} 획득!`);
+            await sleep(1500);
+
+            if (state.floor >= 10) endGame(true);
+            else showShop();
+        }
+
+        function showShop() {
+            state.phase = 'shop';
+            document.getElementById('battle-area').classList.add('hidden');
+            document.getElementById('shop-scene').classList.remove('hidden');
+            document.getElementById('move-controls').classList.add('hidden');
+            document.getElementById('next-btn-container').classList.remove('hidden');
+            updateUI();
+        }
+
+        function buyItem(type) {
+            if (type === 'heal' && state.money >= 100) {
+                state.money -= 100;
+                state.player.hp = state.player.maxHp;
+                log("상처약으로 회복되었습니다!");
+            } else if (type === 'lvup' && state.money >= 200) {
+                state.money -= 200;
+                state.player.lv++;
+                state.player.maxHp += 20;
+                state.player.hp += 20;
+                state.player.atk += 6;
+                log("레벨이 올라 강해졌습니다!");
+            }
+            updateUI();
+        }
+
+        async function nextFloor() {
+            state.floor++;
+            state.phase = 'battle';
+            await spawnEnemy();
+        }
+
+        function endGame(isWin) {
+            state.phase = 'end';
+            document.getElementById('view-game').classList.add('hidden');
+            document.getElementById('move-controls').classList.add('hidden');
+            document.getElementById('next-btn-container').classList.add('hidden');
+            document.getElementById('view-end').classList.remove('hidden');
+            
+            const title = document.getElementById('end-title');
+            const msg = document.getElementById('end-message');
+            const victoryAssets = document.getElementById('victory-assets');
+            
+            if (isWin) {
+                victoryAssets.classList.remove('hidden');
+                title.innerText = "CHAMPION!";
+                title.style.color = "#3b4cca";
+                msg.innerText = "뮤츠를 쓰러뜨리고 타워의 정점에 도달했습니다!\n당신과 피카츄는 이제 타워의 새로운 전설입니다.";
+            } else {
+                victoryAssets.classList.add('hidden');
+                title.innerText = "GAME OVER";
+                title.style.color = "#8b1d44";
+                msg.innerText = "피카츄가 쓰러져 눈앞이 캄캄해졌다!\n재정비 후 다시 도전해 보세요.";
+            }
+        }
+
+        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+    </script>
+</body>
+</html>
