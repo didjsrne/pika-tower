@@ -23,7 +23,8 @@ export interface ItemDef {
   name: string;
   price: number;
   desc: string;
-  kind: "consumable" | "held";
+  // consumable: 가방에 넣어 전투 중 사용 / held: 지닌물건 패시브 / instant: 구매 즉시 발동
+  kind: "consumable" | "held" | "instant";
 }
 
 export interface PlayerState {
@@ -69,7 +70,7 @@ export const MOVE_DATA: MoveDef[] = [
 export const ITEMS: ItemDef[] = [
   { id: "potion", name: "상처약", price: 120, kind: "consumable", desc: "HP를 50 회복한다." },
   { id: "superPotion", name: "고급상처약", price: 320, kind: "consumable", desc: "HP를 가득 회복한다." },
-  { id: "rareCandy", name: "이상한사탕", price: 260, kind: "consumable", desc: "레벨이 1 오른다 (HP+20, 공격+6)." },
+  { id: "rareCandy", name: "이상한사탕", price: 260, kind: "instant", desc: "사면 즉시 레벨이 1 오른다 (HP+20, 공격+6)." },
   { id: "lightBall", name: "전기구슬", price: 520, kind: "held", desc: "지니면 전기 기술 위력 2배." },
   { id: "amuletCoin", name: "부적금화", price: 420, kind: "held", desc: "지니면 획득 자금 1.5배." },
   { id: "choiceSpecs", name: "구애안경", price: 640, kind: "held", desc: "지니면 모든 기술 위력 1.3배." },

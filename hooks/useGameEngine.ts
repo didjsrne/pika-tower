@@ -333,11 +333,6 @@ export function useGameEngine() {
       } else if (id === "superPotion") {
         s.player.hp = s.player.maxHp;
         log("고급상처약을 사용했다. HP 완전 회복!");
-      } else if (id === "rareCandy") {
-        // 진행도와 무관하게 "1레벨업에 필요한 경험치량"을 한 번에 지급.
-        const need = expToNext(s.player.lv);
-        grantExp(s.player, need);
-        log(`이상한사탕! 경험치 ${need} 획득, Lv${s.player.lv}가 되었다!`);
       }
       render();
       await sleep(1100);
@@ -367,10 +362,17 @@ export function useGameEngine() {
       s.money -= def.price;
       if (def.kind === "consumable") {
         s.player.bag[id] = (s.player.bag[id] ?? 0) + 1;
-      } else {
+        log(`${def.name}을(를) 구입했다!`);
+      } else if (def.kind === "held") {
         s.player.held.push(id);
+        log(`${def.name}을(를) 구입했다!`);
+      } else if (def.kind === "instant") {
+        // 구매 즉시 발동
+        if (id === "rareCandy") {
+          grantExp(s.player, expToNext(s.player.lv));
+          log(`이상한사탕! 피카츄는 Lv${s.player.lv}가 되었다!`);
+        }
       }
-      log(`${def.name}을(를) 구입했다!`);
       render();
     },
     [log, render],
