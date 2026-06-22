@@ -1,7 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { InputAction } from "@/hooks/useGameEngine";
+
+// 화면 내용을 그리는 기준(디자인) 크기. 데스크톱 최대 화면 폭과 동일하게 두어
+// 데스크톱에서는 scale=1(기존 그대로), 좁은 화면에서는 비율 유지하며 축소된다.
+const SCREEN_DESIGN = 450;
 
 function DPad({ onInput }: { onInput: (a: InputAction) => void }) {
   const press = (a: InputAction) => (e: React.MouseEvent) => {
@@ -46,6 +50,20 @@ export default function GameBoy({
     e.preventDefault();
     onInput(a);
   };
+
+  // 실제 화면 폭에 맞춰 고정 디자인(450px)을 균일 축소한다.
+  const screenRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const el = screenRef.current;
+    if (!el) return;
+    const update = () => setScale(el.clientWidth / SCREEN_DESIGN);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div className="gb-body w-full max-w-[580px]">
       {/* ---- 화면 베젤 ---- */}
@@ -58,8 +76,18 @@ export default function GameBoy({
         </div>
         {/* 화면 높이는 aspect-ratio로만 결정되고, 내용은 absolute 레이어로 띄워
             어떤 화면/메뉴에서도 게임보이 크기가 변하지 않게 한다. */}
-        <div className="gb-screen">
-          <div className="absolute inset-0 p-3 flex flex-col overflow-hidden">{children}</div>
+        <div className="gb-screen" ref={screenRef}>
+          <div
+            className="absolute top-0 left-0 p-3 flex flex-col overflow-hidden"
+            style={{
+              width: SCREEN_DESIGN,
+              height: SCREEN_DESIGN,
+              transform: `scale(${scale})`,
+              transformOrigin: "top left",
+            }}
+          >
+            {children}
+          </div>
         </div>
       </div>
 
