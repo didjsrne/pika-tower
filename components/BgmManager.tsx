@@ -36,10 +36,17 @@ function pickTrack(s: GameState): string | null {
   }
 }
 
-export default function BgmManager({ state }: { state: GameState }) {
+// unlocked: 시작 게이트(BootGate)가 첫 사용자 입력을 받은 뒤 true가 된다.
+// 자동재생 정책상 그 전에는 재생을 시도하지 않는다.
+export default function BgmManager({
+  state,
+  unlocked,
+}: {
+  state: GameState;
+  unlocked: boolean;
+}) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [muted, setMuted] = useState(false);
-  const [unlocked, setUnlocked] = useState(false);
 
   const desired = pickTrack(state);
 
@@ -54,18 +61,6 @@ export default function BgmManager({ state }: { state: GameState }) {
       audioRef.current = null;
     };
   }, []);
-
-  // 브라우저 자동재생 정책: 첫 사용자 입력(터치/키)에서 오디오 잠금 해제.
-  useEffect(() => {
-    if (unlocked) return;
-    const unlock = () => setUnlocked(true);
-    window.addEventListener("pointerdown", unlock, { once: true });
-    window.addEventListener("keydown", unlock, { once: true });
-    return () => {
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("keydown", unlock);
-    };
-  }, [unlocked]);
 
   // 원하는 트랙/음소거/잠금 상태가 바뀌면 재생을 갱신.
   useEffect(() => {
