@@ -2,6 +2,7 @@
 
 import GameBoy from "@/components/GameBoy";
 import Screen from "@/components/Screen";
+import BgmManager from "@/components/BgmManager";
 import { useGameEngine } from "@/hooks/useGameEngine";
 
 export default function Home() {
@@ -11,6 +12,7 @@ export default function Home() {
       <GameBoy onInput={input}>
         <Screen s={state} bagEntries={bagEntries()} />
       </GameBoy>
+      <BgmManager state={state} />
     </main>
   );
 }
