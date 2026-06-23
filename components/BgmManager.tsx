@@ -36,7 +36,7 @@ function pickTrack(s: GameState): string | null {
   }
 }
 
-// unlocked: 시작 게이트(BootGate)가 첫 사용자 입력을 받은 뒤 true가 된다.
+// unlocked: 시작 게이트(NameGate)에서 닉네임을 입력해 시작한 뒤 true가 된다.
 // 자동재생 정책상 그 전에는 재생을 시도하지 않는다.
 export default function BgmManager({
   state,

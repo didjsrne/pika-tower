@@ -33,13 +33,14 @@ function TypeBadges({ types }: { types: string[] }) {
 }
 
 /* ---------------- 시작 화면 ---------------- */
-function StartView({ best }: { best: number }) {
+function StartView({ best, nickname }: { best: number; nickname: string }) {
   return (
     <div className="h-full flex flex-col items-center justify-center text-center">
       <h1 className="title-logo mb-2">피카타워</h1>
       <p className="text-[14px] text-black font-extrabold mb-4">무한 등정 로그라이크</p>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={PIKACHU_FRONT} alt="피카츄" className="w-32 h-32 mb-4 drop-shadow-lg pixelated" />
+      <img src={PIKACHU_FRONT} alt="피카츄" className="w-32 h-32 mb-3 drop-shadow-lg pixelated" />
+      {nickname && <p className="text-[14px] text-black font-black mb-1">플레이어: {nickname}</p>}
       {best > 0 && <p className="text-[13px] text-black font-bold mb-2">최고 기록: {best}층</p>}
       <p className="text-[14px] animate-bounce text-black font-bold">A 버튼을 눌러 시작!</p>
     </div>
@@ -223,16 +224,32 @@ function ShopView({ s }: { s: GameState }) {
 }
 
 /* ---------------- 게임 오버 ---------------- */
+function submitText(state: GameState["submitState"]) {
+  switch (state) {
+    case "saving":
+      return "리더보드에 기록 저장 중...";
+    case "saved":
+      return "🏆 리더보드에 기록되었어요!";
+    case "error":
+      return "기록 저장에 실패했어요 (오프라인?)";
+    default:
+      return "";
+  }
+}
+
 function GameOverView({ s }: { s: GameState }) {
   const record = s.floor >= s.best;
   return (
     <div className="h-full flex flex-col items-center justify-center text-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={PIKACHU_FRONT} alt="피카츄" className="w-28 h-28 mb-3 pixelated" style={{ filter: "grayscale(0.7)" }} />
-      <h2 className="text-[26px] font-black mb-2" style={{ color: "#8b1d44" }}>GAME OVER</h2>
+      <img src={PIKACHU_FRONT} alt="피카츄" className="w-24 h-24 mb-2 pixelated" style={{ filter: "grayscale(0.7)" }} />
+      <h2 className="text-[24px] font-black mb-1" style={{ color: "#8b1d44" }}>GAME OVER</h2>
+      <p className="text-[14px] font-black">{s.nickname || "이름없음"}</p>
       <p className="text-[15px] font-black mb-1">{s.floor}층에서 쓰러졌다</p>
+      <p className="text-[12px] font-bold mb-1 opacity-80">피카츄 Lv{s.player.lv} 도달</p>
       {record && <p className="text-[13px] font-bold text-[#3b4cca] mb-1">★ 신기록 달성!</p>}
-      <p className="text-[13px] font-bold mb-4 opacity-80">최고 기록: {Math.max(s.best, s.floor)}층</p>
+      <p className="text-[12px] font-bold mb-2 opacity-80">최고 기록: {Math.max(s.best, s.floor)}층</p>
+      <p className="text-[11px] font-bold mb-3 h-[14px] text-[#3b4cca]">{submitText(s.submitState)}</p>
       <p className="text-[14px] animate-bounce font-bold">A 버튼으로 다시 도전!</p>
     </div>
   );
@@ -240,7 +257,7 @@ function GameOverView({ s }: { s: GameState }) {
 
 /* ---------------- 라우터 ---------------- */
 export default function Screen({ s, bagEntries }: { s: GameState; bagEntries: typeof ITEMS }) {
-  if (s.phase === "start") return <StartView best={s.best} />;
+  if (s.phase === "start") return <StartView best={s.best} nickname={s.nickname} />;
   if (s.phase === "gameover") return <GameOverView s={s} />;
   if (s.phase === "shop") return <ShopView s={s} />;
   return <BattleView s={s} bagEntries={bagEntries} />;

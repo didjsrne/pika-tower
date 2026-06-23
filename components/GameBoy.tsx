@@ -42,9 +42,11 @@ function Pill({ label }: { label: string }) {
 export default function GameBoy({
   onInput,
   children,
+  footer,
 }: {
   onInput: (a: InputAction) => void;
   children: ReactNode;
+  footer?: ReactNode;
 }) {
   const press = (a: InputAction) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -140,6 +142,8 @@ export default function GameBoy({
         방향키 이동 · <span className="text-gb-dark">A</span> 선택 ·{" "}
         <span className="text-gb-dark">B</span> 취소
       </p>
+
+      {footer && <div className="mt-3 flex justify-center">{footer}</div>}
     </div>
   );
 }

@@ -22,12 +22,15 @@ import { fetchPokemon } from "@/lib/pokeapi";
 export type Phase = "start" | "battle" | "shop" | "gameover";
 export type BattleMenu = "main" | "fight" | "bag";
 export type InputAction = "up" | "down" | "left" | "right" | "a" | "b";
+// 리더보드 점수 등록 상태
+export type SubmitState = "idle" | "saving" | "saved" | "error";
 
 export interface GameState {
   phase: Phase;
   floor: number;
   money: number;
   best: number;
+  nickname: string; // 플레이어 닉네임 (시작 전 입력)
   player: PlayerState;
   enemy: EnemyState | null;
   message: string;
@@ -39,6 +42,8 @@ export interface GameState {
   shakeEnemy: boolean;
   shakePlayer: boolean;
   banner: string | null; // 보스 등장 / 레벨업 등 강조 배너
+  submitState: SubmitState; // 게임오버 시 리더보드 등록 진행 상태
+  lastEntryId: number | null; // 방금 등록된 내 기록 id (리더보드 강조용)
 }
 
 const MAIN_MENU = ["싸운다", "가방", "정보", "도망"];
@@ -67,12 +72,13 @@ function grantExp(p: PlayerState, amount: number): number {
   return levels;
 }
 
-function initialState(best: number): GameState {
+function initialState(best: number, nickname = ""): GameState {
   return {
     phase: "start",
     floor: 1,
     money: 0,
     best,
+    nickname,
     player: freshPlayer(),
     enemy: null,
     message: "모험이 시작됩니다!",
@@ -84,15 +90,26 @@ function initialState(best: number): GameState {
     shakeEnemy: false,
     shakePlayer: false,
     banner: null,
+    submitState: "idle",
+    lastEntryId: null,
   };
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export function useGameEngine() {
+export function useGameEngine(enabled: boolean = true) {
   const ref = useRef<GameState>(initialState(0));
   const [, force] = useReducer((x) => x + 1, 0);
   const render = useCallback(() => force(), []);
+
+  // 시작 게이트에서 받은 닉네임을 게임 상태에 반영.
+  const setNickname = useCallback(
+    (name: string) => {
+      ref.current.nickname = name;
+      render();
+    },
+    [render],
+  );
 
   // best 점수 로드
   useEffect(() => {
@@ -171,6 +188,46 @@ export function useGameEngine() {
     return m;
   };
 
+  // ----- 리더보드 점수 등록 (게임오버 시 1회) -----
+  const submitScore = useCallback(async () => {
+    const s = ref.current;
+    const nickname = s.nickname.trim();
+    // 닉네임이 없으면 (이론상 없음) 등록 스킵
+    if (!nickname) {
+      s.submitState = "idle";
+      return;
+    }
+    s.submitState = "saving";
+    render();
+    try {
+      const res = await fetch("/api/leaderboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nickname,
+          floor: s.floor,
+          level: s.player.lv,
+        }),
+      });
+      // 503 = 아직 Supabase 미연동. 사용자에게 실패로 보이지 않도록 조용히 무시.
+      if (res.status === 503) {
+        s.submitState = "idle";
+        render();
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.ok) {
+        s.submitState = "saved";
+        s.lastEntryId = data.entry?.id ?? null;
+      } else {
+        s.submitState = "error";
+      }
+    } catch {
+      s.submitState = "error";
+    }
+    render();
+  }, [render]);
+
   // ----- 게임 오버 -----
   const gameOver = useCallback(() => {
     const s = ref.current;
@@ -182,7 +239,9 @@ export function useGameEngine() {
       }
     }
     render();
-  }, [render]);
+    // 점수는 비동기로 등록 (UI는 즉시 게임오버로 전환)
+    void submitScore();
+  }, [render, submitScore]);
 
   // ----- 적 턴 -----
   const enemyTurn = useCallback(async () => {
@@ -419,8 +478,9 @@ export function useGameEngine() {
 
       // --- 게임 오버 ---
       if (s.phase === "gameover") {
-        if (action === "a") {
-          ref.current = initialState(s.best);
+        // 점수 등록 중에는 재시작을 막아 중복 입력으로 인한 꼬임을 방지.
+        if (action === "a" && s.submitState !== "saving") {
+          ref.current = initialState(s.best, s.nickname);
           render();
         }
         return;
@@ -522,8 +582,10 @@ export function useGameEngine() {
     [buyItem, log, nextFloor, render, startGame, useItemInBattle, useMove],
   );
 
-  // 키보드 바인딩
+  // 키보드 바인딩 (시작 게이트가 닫히기 전 enabled=false 동안엔 바인딩하지 않아
+  // 닉네임 입력 키가 게임 입력으로 새지 않게 한다.)
   useEffect(() => {
+    if (!enabled) return;
     const onKey = (e: KeyboardEvent) => {
       let act: InputAction | null = null;
       switch (e.key) {
@@ -558,7 +620,7 @@ export function useGameEngine() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [input]);
+  }, [input, enabled]);
 
-  return { state: ref.current, input, bagEntries };
+  return { state: ref.current, input, bagEntries, setNickname };
 }
