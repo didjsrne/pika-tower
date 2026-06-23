@@ -61,8 +61,8 @@ export const TYPE_CHART: Record<string, Record<string, number>> = {
 // ---- 피카츄의 기술 ----
 export const MOVE_DATA: MoveDef[] = [
   { name: "10만볼트", power: 90, type: "electric", label: "전기", desc: "강력한 전기. 물·비행에 효과 굉장." },
-  { name: "둥실둥실풀", power: 85, type: "flying", label: "비행", desc: "공중에서 내리꽂는 비행 기술." },
-  { name: "참방참방서핑", power: 85, type: "water", label: "물", desc: "파도를 타고 돌진하는 물 기술." },
+  { name: "둥실둥실폴", power: 90, type: "flying", label: "비행", desc: "공중에서 내리꽂는 비행 기술." },
+  { name: "참방참방서핑", power: 90, type: "water", label: "물", desc: "파도를 타고 돌진하는 물 기술." },
   { name: "볼부비부비", power: 20, type: "electric", label: "마비", effect: "paralyze", desc: "위력은 낮지만 상대를 반드시 마비시킨다." },
 ];
 
