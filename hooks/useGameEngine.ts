@@ -350,12 +350,12 @@ export function useGameEngine(enabled: boolean = true) {
       else if (mult < 1) log("효과가 별로인 듯하다...");
       await sleep(800);
 
+      // 볼부비부비(Nuzzle): 명중하면 반드시 마비(100%). 단, 전기 무효(땅 타입 등)면 효과 없음.
       if (
         move.effect === "paralyze" &&
         mult > 0 &&
         !enemy.status &&
-        enemy.hp > 0 &&
-        Math.random() < 0.85
+        enemy.hp > 0
       ) {
         enemy.status = "paralyzed";
         log(`${enemy.name}은(는) 마비되었다!`);
